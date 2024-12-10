@@ -8,7 +8,7 @@ const {
   deleteConcesionario,
   getCoches,
   addCoche,
-} = require("../concesionariosController");
+} = require("../controller/concesionariosController");
 
 router.get("/", getConcesionarios);
 router.post("/", createConcesionario);
