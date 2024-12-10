@@ -9,6 +9,9 @@
 // Concretamente el framework express.
 const express = require("express");
 
+const concesionariosRoutes = require("./rutasConcesionario");
+
+
 // Inicializamos la aplicación
 const app = express();
 
@@ -62,3 +65,6 @@ app.delete("/coches/:id", (request, response) => {
 
   response.json({ message: "ok" });
 });
+
+
+app.use("/concesionarios", concesionariosRoutes);
