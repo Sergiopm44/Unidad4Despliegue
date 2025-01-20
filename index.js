@@ -1,11 +1,21 @@
 const express = require("express");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const helmet = require("helmet");
+
 
 const uri =
   "mongodb+srv://pintomoraless57:b8HN5FjksrxrxrRY@cluster0.ekzn4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 const app = express();
 app.use(express.json());
+
+//Comenzamos a usar helmet
+app.use(helmet());
+app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true })); // HTTP Strict Transport Security
+app.use(helmet.noSniff()); // Previene que los navegadores adivinen el tipo de contenido
+app.use(helmet.frameguard({ action: "deny" })); // Previene ataques de clickjacking
+//Fin del uso de helmet
+
 const port = process.env.PORT || 8080;
 
 let db, concesionariosCollection;
