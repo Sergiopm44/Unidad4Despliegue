@@ -1,7 +1,8 @@
 const express = require("express");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const helmet = require("helmet");
-
+const swaggerUi = require("swagger-ui-express");
+const swaggerDocument = require("./swagger.json");
 
 const uri =
   "mongodb+srv://pintomoraless57:b8HN5FjksrxrxrRY@cluster0.ekzn4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
@@ -15,6 +16,9 @@ app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true })); // HTTP Str
 app.use(helmet.noSniff()); // Previene que los navegadores adivinen el tipo de contenido
 app.use(helmet.frameguard({ action: "deny" })); // Previene ataques de clickjacking
 //Fin del uso de helmet
+
+// Configuración de Swagger
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 const port = process.env.PORT || 8080;
 
@@ -131,7 +135,6 @@ app.post("/concesionarios/:id/coches", async (request, response) => {
   try {
     const id = request.params.id;
     const coche = request.body;
-    coche._id = new ObjectId().toString(); // Ensure each car has a unique identifier
     const result = await concesionariosCollection.updateOne(
       { _id: new ObjectId(id) },
       { $push: { coches: coche } }
@@ -142,10 +145,10 @@ app.post("/concesionarios/:id/coches", async (request, response) => {
   }
 });
 
-// Obtiene el coche cuyo id sea cocheId, del concesionario pasado por id
-app.get("/concesionarios/:id/coches/:cocheId", async (request, response) => {
+// Obtiene el coche cuyo index sea cocheIndex, del concesionario pasado por id
+app.get("/concesionarios/:id/coches/:cocheIndex", async (request, response) => {
   try {
-    const { id, cocheId } = request.params;
+    const { id, cocheIndex } = request.params;
     const concesionario = await concesionariosCollection.findOne({
       _id: new ObjectId(id),
     });
@@ -154,7 +157,7 @@ app.get("/concesionarios/:id/coches/:cocheId", async (request, response) => {
         .status(404)
         .json({ error: "Concesionario no encontrado" });
     }
-    const coche = concesionario.coches.find((c) => c._id === cocheId);
+    const coche = concesionario.coches[parseInt(cocheIndex)];
     if (!coche) {
       return response.status(404).json({ error: "Coche no encontrado" });
     }
@@ -164,14 +167,23 @@ app.get("/concesionarios/:id/coches/:cocheId", async (request, response) => {
   }
 });
 
-// Actualiza el coche cuyo id sea cocheId, del concesionario pasado por id
-app.put("/concesionarios/:id/coches/:cocheId", async (request, response) => {
+// Actualiza el coche cuyo index sea cocheIndex, del concesionario pasado por id
+app.put("/concesionarios/:id/coches/:cocheIndex", async (request, response) => {
   try {
-    const { id, cocheId } = request.params;
+    const { id, cocheIndex } = request.params;
     const coche = request.body;
+    const concesionario = await concesionariosCollection.findOne({
+      _id: new ObjectId(id),
+    });
+    if (!concesionario) {
+      return response
+        .status(404)
+        .json({ error: "Concesionario no encontrado" });
+    }
+    concesionario.coches[parseInt(cocheIndex)] = coche;
     const result = await concesionariosCollection.updateOne(
-      { _id: new ObjectId(id), "coches._id": cocheId },
-      { $set: { "coches.$": coche } }
+      { _id: new ObjectId(id) },
+      { $set: { coches: concesionario.coches } }
     );
     response.json({ message: "ok", result });
   } catch (error) {
@@ -179,17 +191,25 @@ app.put("/concesionarios/:id/coches/:cocheId", async (request, response) => {
   }
 });
 
-// Borra el coche cuyo id sea cocheId, del concesionario pasado por id
-app.delete("/concesionarios/:id/coches/:cocheId", async (request, response) => {
+// Borra el coche cuyo index sea cocheIndex, del concesionario pasado por id
+app.delete("/concesionarios/:id/coches/:cocheIndex", async (request, response) => {
   try {
-    const { id, cocheId } = request.params;
+    const { id, cocheIndex } = request.params;
+    const concesionario = await concesionariosCollection.findOne({
+      _id: new ObjectId(id),
+    });
+    if (!concesionario) {
+      return response
+        .status(404)
+        .json({ error: "Concesionario no encontrado" });
+    }
+    concesionario.coches.splice(parseInt(cocheIndex), 1);
     const result = await concesionariosCollection.updateOne(
       { _id: new ObjectId(id) },
-      { $pull: { coches: { _id: cocheId } } }
+      { $set: { coches: concesionario.coches } }
     );
     response.json({ message: "ok", result });
   } catch (error) {
     response.status(500).json({ error: error.message });
   }
 });
-//Fin
